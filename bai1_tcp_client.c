@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
 
     // 2. Lấy tham số từ dòng lệnh
     char *ip = argv[1];
-    int port = atoi(argv[2]); // Chuyển chuỗi cổng sang số nguyên
+    int port = atoi(argv[2]); 
 
     // 3. Tạo socket (AF_INET: IPv4, SOCK_STREAM: TCP)
     int client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -23,8 +23,8 @@ int main(int argc, char *argv[]) {
     // 4. Khai báo địa chỉ của server để kết nối
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(ip); // Chuyển chuỗi IP sang dạng số
-    addr.sin_port = htons(port);          // Chuyển cổng sang định dạng mạng (Big-endian)
+    addr.sin_addr.s_addr = inet_addr(ip); 
+    addr.sin_port = htons(port);          
 
     // 5. Kết nối đến server
     if (connect(client, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
@@ -43,12 +43,14 @@ int main(int argc, char *argv[]) {
     char buf[1024];
     while (1) {
         printf("Nhập tin nhắn: ");
-        fgets(buf, sizeof(buf), stdin); // Đọc chuỗi từ bàn phím
-        
-        send(client, buf, strlen(buf), 0); // Gửi sang server
-        if (strncmp(buf, "exit", 4) == 0) break; // Thoát nếu gõ exit
-    }
+        fflush(stdout); 
 
+        if (fgets(buf, sizeof(buf), stdin) != NULL) {
+            if (strncmp(buf, "exit", 4) == 0) break; 
+
+            send(client, buf, strlen(buf), 0);
+    }
+    }
     close(client);
     return 0;
 }

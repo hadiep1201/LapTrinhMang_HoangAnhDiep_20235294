@@ -5,9 +5,16 @@
 #include <arpa/inet.h>
 #include <time.h>
 
+typedef struct {
+    char mssv[20];
+    char ho_ten[100];
+    char ngay_sinh[20];
+    float diem_tb;
+} SinhVien;
+
 int main(int argc, char *argv[]) {
     if (argc < 3) {
-        printf("Sử dụng: ./sv_server <cổng> <file_log>\n");
+        printf("Sử dụng: ./sv_server <Cổng> <Tên file log>\n");
         return 1;
     }
 
@@ -17,41 +24,48 @@ int main(int argc, char *argv[]) {
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(atoi(argv[1]));
 
-    bind(listener, (struct sockaddr *)&addr, sizeof(addr));
-    listen(listener, 5);
+    if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        perror("Bind failed");
+        return 1;
+    }
 
-    printf("Server sinh viên đang đợi ở cổng %s...\n", argv[1]);
+    listen(listener, 5);
+    printf("Server đang đợi kết nối ở cổng %s...\n", argv[1]);
 
     while (1) {
         struct sockaddr_in client_addr;
-        int client_len = sizeof(client_addr);
-        int client = accept(listener, (struct sockaddr *)&client_addr, &client_len);
+        socklen_t client_addr_len = sizeof(client_addr);
+        
+        int client = accept(listener, (struct sockaddr *)&client_addr, &client_addr_len);
+        if (client < 0) continue;
 
-        // 1. Lấy địa chỉ IP của client
+        // Lấy IP Client
         char *client_ip = inet_ntoa(client_addr.sin_addr);
 
-        // 2. Lấy thời gian hiện tại
-        time_t t = time(NULL);
-        struct tm *tm_info = localtime(&t);
-        char time_str[26];
-        strftime(time_str, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+        // Nhận struct dữ liệu
+        SinhVien sv;
+        int n = recv(client, &sv, sizeof(sv), 0);
+        
+        if (n > 0) {
+            // Lấy thời gian hiện tại
+            time_t t = time(NULL);
+            struct tm *tm_info = localtime(&t);
+            char time_str[26];
+            strftime(time_str, 26, "%Y-%m-%d %H:%M:%S", tm_info);
 
-        // 3. Nhận dữ liệu từ client
-        char buf[256];
-        int ret = recv(client, buf, sizeof(buf) - 1, 0);
-        if (ret > 0) {
-            buf[ret] = '\0';
+            // In ra màn hình
+            printf("%s %s %s %s %s %.2f\n", client_ip, time_str, sv.mssv, sv.ho_ten, sv.ngay_sinh, sv.diem_tb);
 
-            // 4. In ra màn hình và ghi vào file log
-            printf("%s %s %s\n", client_ip, time_str, buf);
-
+            // Ghi vào file log (chế độ 'a' - append)
             FILE *f = fopen(argv[2], "a");
-            fprintf(f, "%s %s %s\n", client_ip, time_str, buf);
-            fclose(f);
+            if (f != NULL) {
+                fprintf(f, "%s %s %s %s %s %.2f\n", client_ip, time_str, sv.mssv, sv.ho_ten, sv.ngay_sinh, sv.diem_tb);
+                fclose(f);
+            }
         }
-
         close(client);
     }
 
+    close(listener);
     return 0;
 }
