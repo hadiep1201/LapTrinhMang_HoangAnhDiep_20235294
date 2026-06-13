@@ -134,7 +134,7 @@ int main() {
         content_len += bytes;
     }
     fclose(fq); // Đóng lưu file
-    
+
     closesocket(data_sock); recv_res(control_sock, buffer, sizeof(buffer));
 
     printf("\n=========================================================\n");
